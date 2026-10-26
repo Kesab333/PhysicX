@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Payment Success - PhysicX</title>
-  <meta name="description" content="PhysicX payment success page that waits for backend license activation before redirecting." />
+  <title>Payment Status - PhysicX</title>
+  <meta name="description" content="Check server-confirmed payment and license status." />
   <link rel="icon" type="image/png" href="assets/icon/logo.png" />
   <link rel="stylesheet" href="shared.css" />
   <link rel="stylesheet" href="auth.css" />
@@ -41,17 +41,17 @@
 <body data-page="payment-success">
   <main class="success-shell">
     <section class="success-card reveal">
-      <span class="badge badge-green">Payment received</span>
+      <span class="badge badge-blue" data-payment-badge>Payment status</span>
       <h1>Thank you for choosing PhysicX.</h1>
       <div id="success-message" class="status-message status-info show" style="margin-top:1rem;">
         Verifying your paid license...
       </div>
       <p id="success-detail">
-        We are waiting for the backend webhook to activate your license, then this page will take you to the dashboard automatically.
+        Checking the payment status recorded by PhysicX. Only a server-confirmed order is marked paid.
       </p>
       <div style="display:flex; justify-content:center; gap:0.9rem; flex-wrap:wrap; margin-top:1.5rem;">
-        <a class="btn btn-primary" href="/PhysicX/dashboard.html">Open dashboard now</a>
-        <a class="btn btn-secondary" href="/PhysicX/pricing.html">Back to pricing</a>
+        <a class="btn btn-primary" href="/dashboard.html">Open dashboard now</a>
+        <a class="btn btn-secondary" href="/pricing.html">Back to pricing</a>
       </div>
     </section>
   </main>

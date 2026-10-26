@@ -1,43 +1,9 @@
 ﻿(function () {
   function detectFallbackContext() {
-    const path = String(window.location.pathname || '').toLowerCase();
-    const nested = /\/(about|contacts|docs|gallery)\//.test(path);
-    const relativeRoot = nested ? '../' : '';
-
-    if (path.includes('mathematicx')) {
-      return {
-        id: 'mathematicx',
-        name: 'MathematicX',
-        science: 'Mathematics',
-        base: '/MathematicX',
-        relativeRoot,
-        logoPath: `${relativeRoot}assets/icon/logo.png`,
-        route: (page) => `/MathematicX/${String(page || '').replace(/^\/+/, '')}`,
-        brandHtml: 'Mathematic<span>X</span>'
-      };
-    }
-
-    if (path.includes('chemistry')) {
-      return {
-        id: 'chemistry',
-        name: 'ChemistrY',
-        science: 'Chemistry',
-        base: '/ChemistrY',
-        relativeRoot,
-        logoPath: `${relativeRoot}assets/icon/logo.png`,
-        route: (page) => `/ChemistrY/${String(page || '').replace(/^\/+/, '')}`,
-        brandHtml: 'Chemistr<span>Y</span>'
-      };
-    }
-
     return {
-      id: 'physicx',
-      name: 'PhysicX',
-      science: 'Physics',
-      base: '/PhysicX',
-      relativeRoot,
-      logoPath: `${relativeRoot}assets/icon/logo.png`,
-      route: (page) => `/PhysicX/${String(page || '').replace(/^\/+/, '')}`,
+      id: 'physicx', name: 'PhysicX', science: 'Physics', base: '',
+      relativeRoot: '/', logoPath: '/assets/icon/logo.png',
+      route: (page) => `/${String(page || '').replace(/^\/+/, '')}`,
       brandHtml: 'Physic<span>X</span>'
     };
   }
@@ -94,6 +60,7 @@
   function pageLinks() {
     return {
       home: `${app.relativeRoot}index.html`,
+      application: window.CONFIG?.APP_URL || '/app/',
       pricing: `${app.relativeRoot}pricing.html`,
       gallery: `${app.relativeRoot}gallery/gallery.html`,
       features: `${app.relativeRoot}index.html#features`,
@@ -116,7 +83,7 @@
 
   function isHomePage() {
     const path = String(window.location.pathname || '').replace(/\\/g, '/').toLowerCase();
-    return /(?:^|\/)index\.html$/.test(path) || path.endsWith(app.base.toLowerCase()) || path.endsWith(`${app.id}-main`);
+    return path === `${app.base.toLowerCase()}/` || path === `${app.base.toLowerCase()}/index.html`;
   }
 
   function renderPrimaryNavigation() {
@@ -125,7 +92,8 @@
 
     const links = pageLinks();
     const items = [
-      { label: 'Main', href: links.rudrax, external: true },
+      { label: 'Home', href: links.home },
+      { label: 'Open App', href: links.application },
       { label: 'Pricing', href: links.pricing },
       { label: 'Gallery', href: links.gallery },
       { label: 'Features', href: links.features },
@@ -221,8 +189,8 @@
     navInner.querySelectorAll('.nav-actions').forEach((node) => node.remove());
     navLinks.querySelectorAll('.nav-mobile-auth').forEach((node) => node.remove());
 
-    const token = localStorage.getItem(TOKEN_KEY) || '';
-    const storedEmail = localStorage.getItem(EMAIL_KEY) || '';
+    const token = sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY) || '';
+    const storedEmail = sessionStorage.getItem(EMAIL_KEY) || localStorage.getItem(EMAIL_KEY) || '';
     const navActions = document.createElement('div');
     navActions.className = 'nav-actions';
     const links = pageLinks();
@@ -238,7 +206,11 @@
       logoutButton.className = 'nav-auth-button';
       logoutButton.textContent = 'Logout';
       logoutButton.addEventListener('click', () => {
-        localStorage.removeItem(TOKEN_KEY);
+        [localStorage, sessionStorage].forEach((storage) => {
+          storage.removeItem(TOKEN_KEY);
+          storage.removeItem(EMAIL_KEY);
+          storage.removeItem(`${app.id}_token_expires_at`);
+        });
         localStorage.removeItem(EMAIL_KEY);
         window.location.href = links.login;
       });
@@ -251,7 +223,11 @@
           button.type = 'button';
           button.textContent = 'Logout';
           button.addEventListener('click', () => {
-            localStorage.removeItem(TOKEN_KEY);
+            [localStorage, sessionStorage].forEach((storage) => {
+          storage.removeItem(TOKEN_KEY);
+          storage.removeItem(EMAIL_KEY);
+          storage.removeItem(`${app.id}_token_expires_at`);
+        });
             localStorage.removeItem(EMAIL_KEY);
             window.location.href = links.login;
           });

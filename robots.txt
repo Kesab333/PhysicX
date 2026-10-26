@@ -1,4 +1,8 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://kesab333.github.io/PhysicX/sitemap.xml
+# The combined server supplies the sitemap URL for the deployed origin.
+Disallow: /api/
+Disallow: /admin/
+Disallow: /app/
+Disallow: /dashboard.html

@@ -1,7 +1,7 @@
 ﻿(function () {
-  const app = window.APP_CONTEXT || { id: 'physicx', name: 'PhysicX', initials: 'PX', route: (path) => `/PhysicX/${String(path || '').replace(/^\/+/, '')}` };
+  const app = window.APP_CONTEXT || { id: 'physicx', name: 'PhysicX', initials: 'PX', route: (path) => `/${String(path || '').replace(/^\/+/, '')}` };
   const route = app.route;
-  const supportEmail = (window.CONFIG && window.CONFIG.SUPPORT_EMAIL) || 'support@physicx.in';
+  const supportEmail = (window.CONFIG && window.CONFIG.SUPPORT_EMAIL) || 'physicx.support@gmail.com';
 
   function initialsFromEmail(email) {
     const localPart = String(email || '').split('@')[0] || app.initials || app.name.slice(0, 2);
@@ -112,8 +112,12 @@
     ]);
 
     if (!profile.success) {
-      window.APP_AUTH.clearSession();
-      window.location.href = route('login.html');
+      if (profile.status === 401) {
+        window.APP_AUTH.clearSession();
+        window.location.href = route('login.html');
+      } else {
+        setLicenseMessage('revoked', profile.message);
+      }
       return;
     }
 
@@ -124,7 +128,7 @@
     }
 
     const profileData = profile.data || {};
-    const licenseData = license.data || {};
+    const licenseData = license.success ? (license.data || {}) : {};
     const daysRemaining = resolveDaysRemaining(licenseData);
     const remainingPercent = resolveProgressPercent(licenseData, daysRemaining);
 
@@ -139,7 +143,7 @@
     setText('dashboard-current-device', licenseData.current_device_name || 'No active device');
     setText('dashboard-device-changes-used', `${licenseData.device_changes_used ?? 0} / ${licenseData.max_device_changes ?? 5}`);
     setText('dashboard-remaining-device-changes', `${licenseData.remaining_device_changes ?? Math.max(0, (licenseData.max_device_changes ?? 5) - (licenseData.device_changes_used ?? 0))}`);
-    setLicenseMessage(licenseData.status, licenseData.message);
+    setLicenseMessage(license.success ? licenseData.status : 'revoked', license.success ? licenseData.message : license.message);
     setDeviceWarning(licenseData.remaining_device_changes);
 
     const fill = document.getElementById('dashboard-license-fill');

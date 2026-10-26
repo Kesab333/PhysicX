@@ -1,5 +1,5 @@
 ﻿(function () {
-  const app = window.APP_CONTEXT || { name: 'PhysicX', route: (path) => `/PhysicX/${String(path || '').replace(/^\/+/, '')}` };
+  const app = window.APP_CONTEXT || { name: 'PhysicX', route: (path) => `/${String(path || '').replace(/^\/+/, '')}` };
   const route = app.route;
 
   function sanitizeOtp(value) {
@@ -14,6 +14,19 @@
     const form = document.getElementById('verify-otp-form');
     const message = document.getElementById('verify-otp-message');
     if (!form) return;
+
+    const resend = document.getElementById('resend-otp');
+    resend?.addEventListener('click', async () => {
+      const email = String(form.email.value || window.APP_AUTH.getPendingEmail() || '').trim().toLowerCase();
+      if (!email) {
+        window.APP_AUTH.setMessage(message, 'error', 'Enter your account email first.');
+        return;
+      }
+      resend.disabled = true;
+      const result = await window.APP_AUTH.apiRequest('/resend-otp', { method: 'POST', body: { email } });
+      window.APP_AUTH.setMessage(message, result.success ? 'success' : 'error', result.message);
+      resend.disabled = false;
+    });
 
     const otpInput = form.querySelector("input[name='otpCode']");
     if (otpInput) {

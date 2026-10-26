@@ -2,14 +2,15 @@
   const app = window.APP_CONTEXT || {
     id: 'physicx',
     name: 'PhysicX',
-    route: (path) => `/PhysicX/${String(path || '').replace(/^\/+/, '')}`,
+    route: (path) => `/${String(path || '').replace(/^\/+/, '')}`,
     initials: 'PX'
   };
-  const route = app.route || ((path) => `/${String(app.name || 'PhysicX')}/${String(path || '').replace(/^\/+/, '')}`);
+  const route = app.route || ((path) => `/${String(path || '').replace(/^\/+/, '')}`);
   const STORAGE_KEYS = {
     token: `${app.id}_jwt`,
     email: `${app.id}_user_email`,
-    pendingEmail: `${app.id}_pending_email`
+    pendingEmail: `${app.id}_pending_email`,
+    expiresAt: `${app.id}_token_expires_at`
   };
 
   const API_URL = (window.CONFIG && window.CONFIG.API_URL) || '';
@@ -23,11 +24,11 @@
   }
 
   function getToken() {
-    return localStorage.getItem(STORAGE_KEYS.token) || '';
+    return sessionStorage.getItem(STORAGE_KEYS.token) || localStorage.getItem(STORAGE_KEYS.token) || '';
   }
 
   function getStoredEmail() {
-    return localStorage.getItem(STORAGE_KEYS.email) || '';
+    return sessionStorage.getItem(STORAGE_KEYS.email) || localStorage.getItem(STORAGE_KEYS.email) || '';
   }
 
   function getPendingEmail() {
@@ -43,14 +44,20 @@
   }
 
   function clearSession() {
-    localStorage.removeItem(STORAGE_KEYS.token);
-    localStorage.removeItem(STORAGE_KEYS.email);
+    [sessionStorage, localStorage].forEach((storage) => {
+      storage.removeItem(STORAGE_KEYS.token);
+      storage.removeItem(STORAGE_KEYS.email);
+      storage.removeItem(STORAGE_KEYS.expiresAt);
+    });
   }
 
-  function persistSession(token, email) {
+  function persistSession(token, email, expiresIn, remember = false) {
     if (!token) return;
-    localStorage.setItem(STORAGE_KEYS.token, token);
-    localStorage.setItem(STORAGE_KEYS.email, normalizeEmail(email));
+    clearSession();
+    const storage = remember ? localStorage : sessionStorage;
+    storage.setItem(STORAGE_KEYS.token, token);
+    storage.setItem(STORAGE_KEYS.email, normalizeEmail(email));
+    if (Number(expiresIn) > 0) storage.setItem(STORAGE_KEYS.expiresAt, String(Date.now() + Number(expiresIn) * 1000));
   }
 
   function setMessage(target, type, message) {
@@ -75,11 +82,14 @@
       headers.Authorization = `Bearer ${options.token}`;
     }
 
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 45000);
     try {
       const response = await fetch(`${API_URL}${path}`, {
         method: options.method || 'GET',
         headers,
-        body: options.body ? JSON.stringify(options.body) : undefined
+        body: options.body ? JSON.stringify(options.body) : undefined,
+        signal: controller.signal
       });
 
       const contentType = response.headers.get('content-type') || '';
@@ -90,9 +100,10 @@
       if (!response.ok) {
         return {
           success: false,
-          message: payload.message || 'Request failed.',
+          message: payload.message || (typeof payload.detail === 'string' ? payload.detail : payload.detail?.message) || (Array.isArray(payload.detail) ? payload.detail.map((item) => item.msg).join(' ') : '') || 'Request failed.',
           status: response.status,
-          data: payload.data || null
+          data: payload.data || null,
+          error: payload.error || payload.detail?.error
         };
       }
 
@@ -105,10 +116,12 @@
     } catch (error) {
       return {
         success: false,
-        message: `Unable to reach the ${app.name} API. Please try again in a moment.`,
+        message: error.name === 'AbortError' ? 'The server took too long to respond. Please try again.' : `Unable to reach the ${app.name} API. Please try again in a moment.`,
         status: 0,
         data: null
       };
+    } finally {
+      window.clearTimeout(timeout);
     }
   }
 
@@ -246,7 +259,7 @@
         return;
       }
 
-      persistSession(token, email);
+      persistSession(token, email, result.data?.expires_in, Boolean(form.querySelector('[name="remember"]')?.checked));
       clearPendingEmail();
       setMessage(message, 'success', result.message);
 
@@ -342,6 +355,7 @@
       }
 
       clearPendingEmail();
+      clearSession();
       setMessage(message, 'success', result.message);
       window.setTimeout(() => {
         window.location.href = route('login.html');
@@ -367,6 +381,7 @@
     getToken,
     hydratePendingEmail,
     persistSession,
+    storePendingEmail,
     setMessage
   };
 
